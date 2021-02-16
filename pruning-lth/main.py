@@ -1,3 +1,6 @@
+import argparse
+import time
+
 import torch
 from torchvision import datasets, transforms
 from functional_models.eval_train import *
@@ -5,7 +8,7 @@ from functional_models.architectures import *
 from functional_models.pruning_funcs import *
 
 
-def main():
+def main(args):
     results_dir = 'results'
     model_dir = 'saved_models'
 
@@ -13,18 +16,18 @@ def main():
     # Parameters.                #
     ##############################
 
-    model_type = 'lenet'
-    approach = 'iterative'
-    method = 'local'
-    epochs = 2
-    prune_amount = 0.2
-    batch_size = 64
-    prune_output_layer = True
+    model_type = args.model_type
+    approach = args.prune_approach
+    method = args.prune_method
+    epochs = args.train_epochs
+    prune_amount = args.prune_ratio
+    batch_size = args.batch_size
+    prune_output_layer = args.prune_output_layer
 
     if approach == 'oneshot':
         rounds = 2
     else:
-        rounds = 4
+        rounds = args.iter_prune_rounds
 
     ##############################
     # Train and Test Loaders.    #
@@ -133,4 +136,15 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model_type",default="lenet", type=str, help="lenet | conv4 | vgg19")
+    parser.add_argument("--batch_size", default=64, type=int)
+    parser.add_argument("--prune_approach", default="iterative", type=str, help="iterative | oneshot")
+    parser.add_argument("--prune_method", default="local", type=str, help="local | global")
+    parser.add_argument("--train_epochs", default=64, type=int)
+    parser.add_argument("--prune_ratio", default=0.1, type=int, help="Initial pruning ratio (0-1)")
+    parser.add_argument("--prune_output_layer", default=True, type=bool, help="Apply pruning to output layer")
+    parser.add_argument("--iter_prune_rounds", default=10, type=int, help="# of rounds in iterative pruning")
+    args = parser.parse_args()
+
+    main(args)
