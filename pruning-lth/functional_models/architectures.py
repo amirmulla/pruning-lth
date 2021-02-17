@@ -17,6 +17,15 @@ class LeNet(nn.Module):
         # activation
         self.activation = nn.ReLU()
 
+        self.rand_initialize_weights()
+
+    def rand_initialize_weights(self):
+        for layer in self.modules():
+            if isinstance(layer, nn.Linear):
+                torch.nn.init.xavier_normal_(layer.weight)
+                if layer.bias is not None:
+                    torch.nn.init.constant_(layer.bias, 0)
+
     def forward(self, x):
         # flatten input
         x = x.view(-1, 28 * 28)
@@ -32,7 +41,7 @@ class LeNet(nn.Module):
 
 # Conv-4
 class Conv_4(nn.Module):
-    def __init__(self, dp_ratio=0.5):
+    def __init__(self, dp_ratio=0.2):
         super(Conv_4, self).__init__()
         # convolution layer (sees 32x32x3 image tensor)
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=64, kernel_size=3, padding=1)
@@ -52,6 +61,15 @@ class Conv_4(nn.Module):
         self.dropout = nn.Dropout(dp_ratio)
         # activation
         self.activation = nn.ReLU()
+
+        self.rand_initialize_weights()
+
+    def rand_initialize_weights(self):
+        for layer in self.modules():
+            if isinstance(layer, nn.Conv2d) or isinstance(layer, nn.Linear):
+                torch.nn.init.xavier_normal_(layer.weight)
+                if layer.bias is not None:
+                    torch.nn.init.constant_(layer.bias, 0)
 
     def forward(self, x):
         x = self.conv1(x)
@@ -105,15 +123,25 @@ class VGG(nn.Module):
         self.avgpool = nn.AdaptiveAvgPool2d((7, 7))
 
         # linear layer (512 * 7 * 7 -> 4096)
-        self.fc1 = nn.Linear(512 * 7 * 7, 4096)
-        self.fc2 = nn.Linear(4096, 4096)
-        self.fc3 = nn.Linear(4096, 10)
+        self.fc = nn.Linear(512 * 7 * 7, 10)
 
         # dropout layer
         self.dropout = nn.Dropout(dp_ratio)
 
         # activation
         self.activation = nn.ReLU()
+
+        self.rand_initialize_weights()
+
+    def rand_initialize_weights(self):
+        for layer in self.modules():
+            if isinstance(layer, nn.Conv2d):
+                torch.nn.init.kaiming_normal_(layer.weight, mode='fan_out', nonlinearity='relu')
+                if layer.bias is not None:
+                    torch.nn.init.constant_(layer.bias, 0)
+            elif isinstance(layer, nn.Linear):
+                torch.nn.init.normal_(layer.weight, 0, 0.01)
+                torch.nn.init.constant_(layer.bias, 0)
 
     def forward(self, x):
         # 64
@@ -160,11 +188,6 @@ class VGG(nn.Module):
         # average pool
         x = self.avgpool(x)
         x = torch.flatten(x, start_dim=1)
-        x = self.fc1(x)
-        x = self.activation(x)
         x = self.dropout(x)
-        x = self.fc2(x)
-        x = self.activation(x)
-        x = self.dropout(x)
-        x = self.fc3(x)
+        x = self.fc(x)
         return x

@@ -15,40 +15,6 @@ def save_model_weights(model):
     return init_params
 
 
-def weights_init_uniform_rule(model):
-    class_name = model.__class__.__name__
-    if class_name.find('Linear') != -1:
-        n = model.in_features
-        y = 1.0 / np.sqrt(n)
-        model.weight.data.uniform_(-y, y)
-        model.bias.data.fill_(0)
-
-
-def init_model_weights(model, model_type="lenet"):
-    if model_type == "lenet":
-        model.apply(weights_init_uniform_rule)
-
-    elif model_type == "conv4":
-        for layer in model.modules():
-            if isinstance(layer, nn.Conv2d):
-                torch.nn.init.xavier_normal_(layer.weight)
-                if layer.bias is not None:
-                    torch.nn.init.constant_(layer.bias, 0)
-            elif isinstance(layer, nn.Linear):
-                torch.nn.init.normal_(layer.weight, 0, 0.01)
-                torch.nn.init.constant_(layer.bias, 0)
-
-    elif model_type == "vgg19":
-        for layer in model.modules():
-            if isinstance(layer, nn.Conv2d):
-                torch.nn.init.kaiming_normal_(model.weight, mode='fan_out', nonlinearity='relu')
-                if layer.bias is not None:
-                    torch.nn.init.constant_(layer.bias, 0)
-            elif isinstance(layer, nn.Linear):
-                torch.nn.init.normal_(layer.weight, 0, 0.01)
-                torch.nn.init.constant_(layer.bias, 0)
-
-
 def rewind_model_weights(model, init_params):
     i = 0
     for _, param in model.named_parameters():
@@ -60,7 +26,17 @@ def rewind_model_weights(model, init_params):
 # Pruning functions.                 #
 ######################################
 
+def remove_pruning(model):
+    for layer in model.children():
+        if isinstance(layer, nn.Linear):
+            prune.remove(layer, name='weight')
+        if isinstance(layer, nn.Conv2d):
+            prune.remove(layer, name='weight')
+
+
 def init_prune_model(model):
+    if prune.is_pruned(model):
+        remove_pruning(model)
     for layer in model.children():
         if isinstance(layer, nn.Linear):
             prune.identity(layer, name='weight')
