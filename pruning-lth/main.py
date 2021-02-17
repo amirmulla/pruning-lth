@@ -20,14 +20,12 @@ def main(args):
     approach = args.prune_approach
     method = args.prune_method
     epochs = args.train_epochs
-    prune_amount = args.prune_ratio
+    prune_amount = args.prune_ratio / 100
     batch_size = args.batch_size
-    prune_output_layer = args.prune_output_layer
-
-    if approach == 'oneshot':
-        rounds = 2
-    else:
-        rounds = args.iter_prune_rounds
+    prune_output_layer = bool(args.prune_output_layer)
+    winning_ticket_reinit = bool(args.winning_ticket_reinit)
+    prune_init = args.prune_init
+    rounds = args.prune_rounds
 
     ##############################
     # Train and Test Loaders.    #
@@ -66,85 +64,157 @@ def main(args):
         lr = 0.1
 
     print(model)
+
     #######################################
     # Identifying winning tickets.        #
     #######################################
 
-    init = 'rewind'
-
     print(
-        f'Prune {model_type} model, with {approach} pruning and {init} init,using {optim_type} optimizer with learning rate={lr} and with pruning rate of {100 * prune_amount:.1f}%')
+        f'Prune {model_type} model, with {approach} pruning and {prune_init} init,using {optim_type} optimizer with learning rate={lr} and with pruning rate of {100 * prune_amount:.1f}%')
 
-    # Step 1
-    init_model_weights(model, model_type)
-    init_prune_model(model)
-    init_weights = save_model_weights(model)
+    if approach == "iterative":
 
-    sparsity_l = []
-    for round in range(rounds):
-        print('Prune Round: {}'.format(round + 1))
+        # Step 1
+        init_prune_model(model)
+        init_weights = save_model_weights(model)
+
+        sparsity_l = []
+        for round in range(rounds):
+            print('Prune Round: {}'.format(round + 1))
+            t0 = time.time()
+            sparsity = calc_model_sparsity(model) / 100
+            sparsity_l.append(sparsity)
+            print_sparsity(model)
+
+            # Step 2
+            train_model(model,
+                        f'model-{model_type}_batchsz-{batch_size}_approach-{approach}_method-{method}_init-{prune_init}_remainweights-{100 * (1 - sparsity):.1f}',
+                        epochs=epochs, lr=lr,
+                        train_loader=train_loader, test_loader=test_loader,
+                        model_dir=model_dir, results_dir=results_dir)
+
+            if round < (rounds - 1):
+                # Step 3
+                p = pow(prune_amount, (1 / (round + 1)))
+                print(f'pruning rate: {100 * p:.1f}%')
+                prune_model(model, p, method, prune_output_layer)
+
+                # Step 4
+                if prune_init == "rewind":
+                    rewind_model_weights(model, init_weights)
+                elif prune_init == "random":
+                    model.rand_initialize_weights()
+
+        print(f'Model pruning, took {time.time() - t0: .2f} seconds')
+
+    elif approach == "oneshot":
+        # Step 0
         t0 = time.time()
-        sparsity = calc_model_sparsity(model) / 100
-        sparsity_l.append(sparsity)
-        print_sparsity(model)
+        init_prune_model(model)
+        sparsity_l = []
+        for round in range(rounds):
+            sparsity = calc_model_sparsity(model) / 100
+            if sparsity != 0:
+                sparsity_l.append(sparsity)
+            p = pow(prune_amount, (1 / (round + 1)))
+            prune_model(model, p, method, prune_output_layer)
 
-        # Step 2
+        # Step 1
+        init_prune_model(model)
+        print_sparsity(model)
         train_model(model,
-                    f'model-{model_type}_batchsz-{batch_size}_approach-{approach}_method-{method}_init-{init}_remainweights-{100 * (1 - sparsity):.1f}',
+                    f'model-{model_type}_batchsz-{batch_size}_approach-{approach}_method-{method}_init-{prune_init}_remainweights-100',
                     epochs=epochs, lr=lr,
                     train_loader=train_loader, test_loader=test_loader,
                     model_dir=model_dir, results_dir=results_dir)
 
-        if round < (rounds - 1):
-            # Step 3
+        for sparsity in sparsity_l:
+            # Step 2
+            prune_model(model, float(sparsity), method, prune_output_layer)
+            print_sparsity(model)
+            train_model(model,
+                        f'model-{model_type}_batchsz-{batch_size}_approach-{approach}_method-{method}_init-{prune_init}_remainweights-{100 * (1 - sparsity):.1f}',
+                        epochs=epochs, lr=lr,
+                        train_loader=train_loader, test_loader=test_loader,
+                        model_dir=model_dir, results_dir=results_dir)
+
+            init_prune_model(model)
+            model_name = model_dir + '/' + f'model-{model_type}_batchsz-{batch_size}_approach-{approach}_method-{method}_init-{prune_init}_remainweights-100' + '.pt'
+            model.load_state_dict(torch.load(model_name))
+
+        print(f'Model pruning, took {time.time() - t0: .2f} seconds')
+
+    elif approach == "random":
+        # Step 0
+        t0 = time.time()
+        init_prune_model(model)
+        sparsity_l = []
+        for round in range(rounds):
+            sparsity = calc_model_sparsity(model) / 100
+            if sparsity != 0:
+                sparsity_l.append(sparsity)
             p = pow(prune_amount, (1 / (round + 1)))
-            print(f'pruning rate: {100 * p:.1f}%')
             prune_model(model, p, method, prune_output_layer)
 
-            # Step 4
-            rewind_model_weights(model, init_weights)
+        # Step 1
+        init_prune_model(model)
 
-    print(f'Model pruning, took {time.time() - t0: .2f} seconds')
+        for sparsity in sparsity_l:
+            # Step 2
+            prune_model(model, float(sparsity), method, prune_output_layer)
+            print_sparsity(model)
+            train_model(model,
+                        f'model-{model_type}_batchsz-{batch_size}_approach-{approach}_method-{method}_init-{prune_init}_remainweights-{100 * (1 - sparsity):.1f}',
+                        epochs=epochs, lr=lr,
+                        train_loader=train_loader, test_loader=test_loader,
+                        model_dir=model_dir, results_dir=results_dir)
+
+            init_prune_model(model)
+            model.rand_initialize_weights()
+
+        print(f'Model pruning, took {time.time() - t0: .2f} seconds')
 
     #############################################
     # Random initialization of winning tickets. #
     #############################################
 
-    init = 'random'
+    if prune_init == "rewind" and winning_ticket_reinit:
+        print(
+            f'Train and evaluate random re-initialization of winning/random tickets of {model_type} model:')
 
-    print(
-        f'Train and evaluate winning/random ticket {model_type} model, with {approach} pruning and {init} init, using {optim_type} optimizer with learning rate={lr} and with pruning rate of {100 * prune_amount:.1f}%')
+        i = 0
+        for round in range(rounds):
+            print('Random training round: {}'.format(round + 1))
+            t0 = time.time()
+            # load winning ticket
+            sparsity = sparsity_l[i]
+            model_name = model_dir + '/' + f'model-{model_type}_batchsz-{batch_size}_approach-{approach}_method-{method}_init-{prune_init}_remainweights-{100 * (1 - sparsity):.1f}' + '.pt'
+            model.load_state_dict(torch.load(model_name))
+            model.rand_initialize_weights()
+            print_sparsity(model)
+            train_model(model,
+                        f'model-{model_type}_batchsz-{batch_size}_approach-{approach}_method-{method}_init-randomreinit_remainweights-{100 * (1 - sparsity):.1f}',
+                        epochs=epochs, lr=lr,
+                        train_loader=train_loader, test_loader=test_loader,
+                        model_dir=model_dir, results_dir=results_dir)
+            i += 1
 
-    i = 0
-    for round in range(rounds):
-        print('Random training round: {}'.format(round + 1))
-        t0 = time.time()
-        # load winning ticket
-        sparsity = sparsity_l[i]
-        model_name = model_dir + '/' + f'model-{model_type}_batchsz-{batch_size}_approach-{approach}_method-{method}_init-rewind_remainweights-{100 * (1 - sparsity):.1f}' + '.pt'
-        model.load_state_dict(torch.load(model_name))
-        init_model_weights(model, model_type)
-        print_sparsity(model)
-        train_model(model,
-                    f'model-{model_type}_batchsz-{batch_size}_approach-{approach}_method-{method}_init-{init}_remainweights-{100 * (1 - sparsity):.1f}',
-                    epochs=epochs, lr=lr,
-                    train_loader=train_loader, test_loader=test_loader,
-                    model_dir=model_dir, results_dir=results_dir)
-        i += 1
-
-    print(f'Model Training with random init, took {time.time() - t0: .2f} seconds')
+        print(f'Model Training with random init, took {time.time() - t0: .2f} seconds')
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_type",default="lenet", type=str, help="lenet | conv4 | vgg19")
+    parser.add_argument("--model_type", default="lenet", type=str, help="lenet | conv4 | vgg19")
     parser.add_argument("--batch_size", default=64, type=int)
-    parser.add_argument("--prune_approach", default="iterative", type=str, help="iterative | oneshot")
+    parser.add_argument("--prune_approach", default="iterative", type=str, help="iterative | oneshot | random")
     parser.add_argument("--prune_method", default="local", type=str, help="local | global")
     parser.add_argument("--train_epochs", default=64, type=int)
-    parser.add_argument("--prune_ratio", default=0.1, type=int, help="Initial pruning ratio (0-1)")
-    parser.add_argument("--prune_output_layer", default=True, type=bool, help="Apply pruning to output layer")
-    parser.add_argument("--iter_prune_rounds", default=10, type=int, help="# of rounds in iterative pruning")
+    parser.add_argument("--prune_ratio", default=20, type=int, help="Initial pruning ratio (0-100)")
+    parser.add_argument("--prune_output_layer", default=1, type=int, help="Apply pruning to output layer")
+    parser.add_argument("--prune_rounds", default=10, type=int, help="Number of pruning rounds")
+    parser.add_argument("--prune_init", default="rewind", type=str, help="rewind | random")
+    parser.add_argument("--winning_ticket_reinit", default=0, type=int, help="Random reinitialization of winning "
+                                                                             "tickets (from iterative with rewind)")
     args = parser.parse_args()
 
     main(args)
