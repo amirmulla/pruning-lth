@@ -76,7 +76,7 @@ def main(args):
         f'Prune {model_type} model, with {approach} pruning and {init} init,using {optim_type} optimizer with learning rate={lr} and with pruning rate of {100 * prune_amount:.1f}%')
 
     # Step 1
-    init_model_weights(model)
+    init_model_weights(model, model_type)
     init_prune_model(model)
     init_weights = save_model_weights(model)
 
@@ -123,7 +123,7 @@ def main(args):
         sparsity = sparsity_l[i]
         model_name = model_dir + '/' + f'model-{model_type}_batchsz-{batch_size}_approach-{approach}_method-{method}_init-rewind_remainweights-{100 * (1 - sparsity):.1f}' + '.pt'
         model.load_state_dict(torch.load(model_name))
-        init_model_weights(model)
+        init_model_weights(model, model_type)
         print_sparsity(model)
         train_model(model,
                     f'model-{model_type}_batchsz-{batch_size}_approach-{approach}_method-{method}_init-{init}_remainweights-{100 * (1 - sparsity):.1f}',
