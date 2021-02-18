@@ -135,6 +135,7 @@ def main(args):
 
         # Step 1
         init_prune_model(model)
+        init_weights = save_model_weights(model)
         print_sparsity(model)
         train_model(model,
                     f'model-{model_type}_batchsz-{batch_size}_dp-{dp_ratio}_approach-{approach}_method-{method}_init-{prune_init}_remainweights-100',
@@ -146,14 +147,18 @@ def main(args):
             # Step 2
             prune_model(model=model, prune_ratio=float(sparsity), prune_ratio_conv=prune_ratio_conv, prune_method=method,
                         prune_output_layer=prune_output_layer)
-
             print_sparsity(model)
+            # Step 3
+            rewind_model_weights(model, init_weights)
+
+            # Step 4
             train_model(model,
                         f'model-{model_type}_batchsz-{batch_size}_dp-{dp_ratio}_approach-{approach}_method-{method}_init-{prune_init}_remainweights-{100 * (1 - sparsity):.1f}',
                         epochs=epochs, lr=lr, optimizer_type=optim_type,
                         train_loader=train_loader, test_loader=test_loader,
                         model_dir=model_dir, results_dir=results_dir)
 
+            # Step 5
             init_prune_model(model)
             model_name = model_dir + '/' + f'model-{model_type}_batchsz-{batch_size}_dp-{dp_ratio}_approach-{approach}_method-{method}_init-{prune_init}_remainweights-100' + '.pt'
             model.load_state_dict(torch.load(model_name))
