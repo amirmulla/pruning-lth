@@ -203,11 +203,10 @@ def main(args):
             f'Train and evaluate random re-initialization of winning/random tickets of {model_type} model:')
 
         i = 0
-        for round in range(rounds):
-            print('Random training round: {}'.format(round + 1))
+        for sparsity in sparsity_l:
+            print('Random training round: {}'.format(i + 1))
             t0 = time.time()
             # load winning ticket
-            sparsity = sparsity_l[i]
             model_name = model_dir + '/' + f'model-{model_type}_batchsz-{batch_size}_dp_ratio-{dp_ratio}_approach-{approach}_method-{method}_init-{prune_init}_remainweights-{100 * (1 - sparsity):.1f}' + '.pt'
             model.load_state_dict(torch.load(model_name))
             model.rand_initialize_weights()
@@ -234,7 +233,7 @@ if __name__ == '__main__':
     parser.add_argument("--prune_rounds", default=10, type=int, help="Number of pruning rounds")
     parser.add_argument("--prune_init", default="rewind", type=str, help="rewind | random")
     parser.add_argument("--winning_ticket_reinit", default=0, type=int, help="Random reinitialization of winning "
-                                                                             "tickets (from iterative with rewind)")
+                                                                             "tickets (from pruning with rewind)")
     parser.add_argument("--dp_ratio", default=20, type=int, help="Dropout ratio (0-100)")
     parser.add_argument("--prune_ratio_conv", default=None, type=int, help="Initial pruning ratio (0-100) for "
                                                                            "Convolution layers")
