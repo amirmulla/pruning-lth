@@ -75,6 +75,8 @@ def main(args):
     # Identifying winning tickets.        #
     #######################################
 
+    p_conv = None
+
     print(
         f'Prune {model_type} model, with {approach} pruning and {prune_init} init,using {optim_type} optimizer with learning rate={lr} and with pruning rate of {100 * prune_ratio:.1f}%')
 
