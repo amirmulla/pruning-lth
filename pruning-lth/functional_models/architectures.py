@@ -122,7 +122,7 @@ class VGG(nn.Module):
         # average pooling layer
         self.avgpool = nn.AdaptiveAvgPool2d((7, 7))
 
-        # linear layer (512 * 7 * 7 -> 4096)
+        # linear layer (512 * 7 * 7 -> 10)
         self.fc = nn.Linear(512 * 7 * 7, 10)
 
         # dropout layer
