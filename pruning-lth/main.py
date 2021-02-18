@@ -207,12 +207,12 @@ def main(args):
             print('Random training round: {}'.format(i + 1))
             t0 = time.time()
             # load winning ticket
-            model_name = model_dir + '/' + f'model-{model_type}_batchsz-{batch_size}_dp_ratio-{dp_ratio}_approach-{approach}_method-{method}_init-{prune_init}_remainweights-{100 * (1 - sparsity):.1f}' + '.pt'
+            model_name = model_dir + '/' + f'model-{model_type}_batchsz-{batch_size}_dp_ratio-{dp_ratio}_approach-{approach}_method-{method}_init-rewind_remainweights-{100 * (1 - sparsity):.1f}' + '.pt'
             model.load_state_dict(torch.load(model_name))
             model.rand_initialize_weights()
             print_sparsity(model)
             train_model(model,
-                        f'model-{model_type}_batchsz-{batch_size}_dp_ratio-{dp_ratio}_approach-{approach}_method-{method}_init-randomreinit_remainweights-{100 * (1 - sparsity):.1f}',
+                        f'model-{model_type}_batchsz-{batch_size}_dp_ratio-{dp_ratio}_approach-{approach}_method-{method}_init-random_remainweights-{100 * (1 - sparsity):.1f}',
                         epochs=epochs, lr=lr, optimizer_type=optim_type,
                         train_loader=train_loader, test_loader=test_loader,
                         model_dir=model_dir, results_dir=results_dir)
