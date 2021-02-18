@@ -50,7 +50,6 @@ def train_model(model, model_name, epochs=20, optimizer_type='adam', lr=0.001, r
     if optimizer_type == 'adam':
         optimizer = optim.Adam(model.parameters(), lr=lr)
     elif optimizer_type == 'sgd':
-        # notice that we already use momentum!
         optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9)
 
     # init results data structure

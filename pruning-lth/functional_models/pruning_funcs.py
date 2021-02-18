@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import numpy as np
 from torch.nn.utils import prune
 
 
@@ -54,9 +53,12 @@ def get_idx_of_output_layer(model):
     return o_layer_idx
 
 
-def prune_model(model, prune_ratio=0.2, prune_method='local', prune_output_layer=True):
+def prune_model(model, prune_ratio=0.2, prune_ratio_conv=None, prune_method='local', prune_output_layer=True):
     o_layer_idx = get_idx_of_output_layer(model)
     i = 0
+
+    if prune_ratio_conv is None:
+        prune_ratio_conv = prune_ratio
 
     if prune_method == 'local':
         for layer in model.children():
@@ -67,7 +69,7 @@ def prune_model(model, prune_ratio=0.2, prune_method='local', prune_output_layer
                 if isinstance(layer, nn.Linear):
                     prune.l1_unstructured(layer, name='weight', amount=prune_ratio)
                 if isinstance(layer, nn.Conv2d):
-                    prune.l1_unstructured(layer, name='weight', amount=prune_ratio)
+                    prune.l1_unstructured(layer, name='weight', amount=prune_ratio_conv)
             i += 1
 
     elif prune_method == 'global':
