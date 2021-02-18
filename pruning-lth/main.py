@@ -21,11 +21,17 @@ def main(args):
     method = args.prune_method
     epochs = args.train_epochs
     prune_amount = args.prune_ratio / 100
+    if args.prune_ratio_conv is not None:
+        prune_ratio_conv = args.prune_ratio_conv / 100
+    else:
+        prune_ratio_conv = None
+
     batch_size = args.batch_size
     prune_output_layer = bool(args.prune_output_layer)
     winning_ticket_reinit = bool(args.winning_ticket_reinit)
     prune_init = args.prune_init
     rounds = args.prune_rounds
+    dp_ratio = args.dp_ratio / 100
 
     ##############################
     # Train and Test Loaders.    #
@@ -51,17 +57,17 @@ def main(args):
 
     # initialize the NN and define optimizer/learning rate
     if model_type == 'lenet':
-        model = LeNet()
+        model = LeNet(dp_ratio=dp_ratio)
         optim_type = 'adam'
         lr = 1.2e-3
     elif model_type == 'conv4':
-        model = Conv_4()
+        model = Conv_4(dp_ratio=dp_ratio)
         optim_type = 'adam'
         lr = 3e-4
     elif model_type == 'vgg19':
-        model = VGG()
+        model = VGG(dp_ratio=dp_ratio)
         optim_type = 'sgd'
-        lr = 0.1
+        lr = 0.01
 
     print(model)
 
@@ -89,7 +95,7 @@ def main(args):
             # Step 2
             train_model(model,
                         f'model-{model_type}_batchsz-{batch_size}_approach-{approach}_method-{method}_init-{prune_init}_remainweights-{100 * (1 - sparsity):.1f}',
-                        epochs=epochs, lr=lr,
+                        epochs=epochs, lr=lr, optimizer_type=optim_type,
                         train_loader=train_loader, test_loader=test_loader,
                         model_dir=model_dir, results_dir=results_dir)
 
@@ -97,7 +103,8 @@ def main(args):
                 # Step 3
                 p = pow(prune_amount, (1 / (round + 1)))
                 print(f'pruning rate: {100 * p:.1f}%')
-                prune_model(model, p, method, prune_output_layer)
+                prune_model(model=model, prune_ratio=p, prune_ratio_conv=prune_ratio_conv, prune_method=method,
+                            prune_output_layer=prune_output_layer)
 
                 # Step 4
                 if prune_init == "rewind":
@@ -117,24 +124,27 @@ def main(args):
             if sparsity != 0:
                 sparsity_l.append(sparsity)
             p = pow(prune_amount, (1 / (round + 1)))
-            prune_model(model, p, method, prune_output_layer)
+            prune_model(model=model, prune_ratio=p, prune_ratio_conv=prune_ratio_conv, prune_method=method,
+                        prune_output_layer=prune_output_layer)
 
         # Step 1
         init_prune_model(model)
         print_sparsity(model)
         train_model(model,
                     f'model-{model_type}_batchsz-{batch_size}_approach-{approach}_method-{method}_init-{prune_init}_remainweights-100',
-                    epochs=epochs, lr=lr,
+                    epochs=epochs, lr=lr, optimizer_type=optim_type,
                     train_loader=train_loader, test_loader=test_loader,
                     model_dir=model_dir, results_dir=results_dir)
 
         for sparsity in sparsity_l:
             # Step 2
-            prune_model(model, float(sparsity), method, prune_output_layer)
+            prune_model(model=model, prune_ratio=float(sparsity), prune_ratio_conv=prune_ratio_conv, prune_method=method,
+                        prune_output_layer=prune_output_layer)
+
             print_sparsity(model)
             train_model(model,
                         f'model-{model_type}_batchsz-{batch_size}_approach-{approach}_method-{method}_init-{prune_init}_remainweights-{100 * (1 - sparsity):.1f}',
-                        epochs=epochs, lr=lr,
+                        epochs=epochs, lr=lr, optimizer_type=optim_type,
                         train_loader=train_loader, test_loader=test_loader,
                         model_dir=model_dir, results_dir=results_dir)
 
@@ -154,18 +164,20 @@ def main(args):
             if sparsity != 0:
                 sparsity_l.append(sparsity)
             p = pow(prune_amount, (1 / (round + 1)))
-            prune_model(model, p, method, prune_output_layer)
+            prune_model(model=model, prune_ratio=p, prune_ratio_conv=prune_ratio_conv, prune_method=method,
+                        prune_output_layer=prune_output_layer)
 
         # Step 1
         init_prune_model(model)
 
         for sparsity in sparsity_l:
             # Step 2
-            prune_model(model, float(sparsity), method, prune_output_layer)
+            prune_model(model=model, prune_ratio=float(sparsity), prune_ratio_conv=prune_ratio_conv, prune_method=method,
+                        prune_output_layer=prune_output_layer)
             print_sparsity(model)
             train_model(model,
                         f'model-{model_type}_batchsz-{batch_size}_approach-{approach}_method-{method}_init-{prune_init}_remainweights-{100 * (1 - sparsity):.1f}',
-                        epochs=epochs, lr=lr,
+                        epochs=epochs, lr=lr, optimizer_type=optim_type,
                         train_loader=train_loader, test_loader=test_loader,
                         model_dir=model_dir, results_dir=results_dir)
 
@@ -194,7 +206,7 @@ def main(args):
             print_sparsity(model)
             train_model(model,
                         f'model-{model_type}_batchsz-{batch_size}_approach-{approach}_method-{method}_init-randomreinit_remainweights-{100 * (1 - sparsity):.1f}',
-                        epochs=epochs, lr=lr,
+                        epochs=epochs, lr=lr, optimizer_type=optim_type,
                         train_loader=train_loader, test_loader=test_loader,
                         model_dir=model_dir, results_dir=results_dir)
             i += 1
@@ -215,6 +227,10 @@ if __name__ == '__main__':
     parser.add_argument("--prune_init", default="rewind", type=str, help="rewind | random")
     parser.add_argument("--winning_ticket_reinit", default=0, type=int, help="Random reinitialization of winning "
                                                                              "tickets (from iterative with rewind)")
+    parser.add_argument("--dp_ratio", default=20, type=int, help="Dropout ration (0-100)")
+    parser.add_argument("--prune_ratio_conv", default=None, type=int, help="Initial pruning ratio (0-100) for "
+                                                                           "Convolution layers")
+
     args = parser.parse_args()
 
     main(args)
