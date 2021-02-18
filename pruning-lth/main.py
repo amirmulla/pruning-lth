@@ -102,7 +102,8 @@ def main(args):
             if round < (rounds - 1):
                 # Step 3
                 p = pow(prune_ratio, (1 / (round + 1)))
-                p_conv = pow(prune_ratio_conv, (1 / (round + 1)))
+                if prune_ratio_conv is not None:
+                    p_conv = pow(prune_ratio_conv, (1 / (round + 1)))
                 print(f'pruning rate: {100 * p:.1f}%')
                 prune_model(model=model, prune_ratio=p, prune_ratio_conv=p_conv, prune_method=method,
                             prune_output_layer=prune_output_layer)
@@ -125,7 +126,8 @@ def main(args):
             if sparsity != 0:
                 sparsity_l.append(sparsity)
             p = pow(prune_ratio, (1 / (round + 1)))
-            p_conv = pow(prune_ratio_conv, (1 / (round + 1)))
+            if prune_ratio_conv is not None:
+                p_conv = pow(prune_ratio_conv, (1 / (round + 1)))
             prune_model(model=model, prune_ratio=p, prune_ratio_conv=p_conv, prune_method=method,
                         prune_output_layer=prune_output_layer)
 
@@ -166,7 +168,8 @@ def main(args):
             if sparsity != 0:
                 sparsity_l.append(sparsity)
             p = pow(prune_ratio, (1 / (round + 1)))
-            p_conv = pow(prune_ratio_conv, (1 / (round + 1)))
+            if prune_ratio_conv is not None:
+                p_conv = pow(prune_ratio_conv, (1 / (round + 1)))
             prune_model(model=model, prune_ratio=p, prune_ratio_conv=p_conv, prune_method=method,
                         prune_output_layer=prune_output_layer)
 
