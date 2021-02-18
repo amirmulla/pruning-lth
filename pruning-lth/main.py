@@ -96,7 +96,7 @@ def main(args):
 
             # Step 2
             train_model(model,
-                        f'model-{model_type}_batchsz-{batch_size}_approach-{approach}_method-{method}_init-{prune_init}_remainweights-{100 * (1 - sparsity):.1f}',
+                        f'model-{model_type}_batchsz-{batch_size}_dp_ratio-{dp_ratio}_approach-{approach}_method-{method}_init-{prune_init}_remainweights-{100 * (1 - sparsity):.1f}',
                         epochs=epochs, lr=lr, optimizer_type=optim_type,
                         train_loader=train_loader, test_loader=test_loader,
                         model_dir=model_dir, results_dir=results_dir)
@@ -137,7 +137,7 @@ def main(args):
         init_prune_model(model)
         print_sparsity(model)
         train_model(model,
-                    f'model-{model_type}_batchsz-{batch_size}_approach-{approach}_method-{method}_init-{prune_init}_remainweights-100',
+                    f'model-{model_type}_batchsz-{batch_size}_dp_ratio-{dp_ratio}_approach-{approach}_method-{method}_init-{prune_init}_remainweights-100',
                     epochs=epochs, lr=lr, optimizer_type=optim_type,
                     train_loader=train_loader, test_loader=test_loader,
                     model_dir=model_dir, results_dir=results_dir)
@@ -149,13 +149,13 @@ def main(args):
 
             print_sparsity(model)
             train_model(model,
-                        f'model-{model_type}_batchsz-{batch_size}_approach-{approach}_method-{method}_init-{prune_init}_remainweights-{100 * (1 - sparsity):.1f}',
+                        f'model-{model_type}_batchsz-{batch_size}_dp_ratio-{dp_ratio}_approach-{approach}_method-{method}_init-{prune_init}_remainweights-{100 * (1 - sparsity):.1f}',
                         epochs=epochs, lr=lr, optimizer_type=optim_type,
                         train_loader=train_loader, test_loader=test_loader,
                         model_dir=model_dir, results_dir=results_dir)
 
             init_prune_model(model)
-            model_name = model_dir + '/' + f'model-{model_type}_batchsz-{batch_size}_approach-{approach}_method-{method}_init-{prune_init}_remainweights-100' + '.pt'
+            model_name = model_dir + '/' + f'model-{model_type}_batchsz-{batch_size}_dp_ratio-{dp_ratio}_approach-{approach}_method-{method}_init-{prune_init}_remainweights-100' + '.pt'
             model.load_state_dict(torch.load(model_name))
 
         print(f'Model pruning, took {time.time() - t0: .2f} seconds')
@@ -184,7 +184,7 @@ def main(args):
                         prune_output_layer=prune_output_layer)
             print_sparsity(model)
             train_model(model,
-                        f'model-{model_type}_batchsz-{batch_size}_approach-{approach}_method-{method}_init-{prune_init}_remainweights-{100 * (1 - sparsity):.1f}',
+                        f'model-{model_type}_batchsz-{batch_size}_dp_ratio-{dp_ratio}_approach-{approach}_method-{method}_init-{prune_init}_remainweights-{100 * (1 - sparsity):.1f}',
                         epochs=epochs, lr=lr, optimizer_type=optim_type,
                         train_loader=train_loader, test_loader=test_loader,
                         model_dir=model_dir, results_dir=results_dir)
@@ -208,12 +208,12 @@ def main(args):
             t0 = time.time()
             # load winning ticket
             sparsity = sparsity_l[i]
-            model_name = model_dir + '/' + f'model-{model_type}_batchsz-{batch_size}_approach-{approach}_method-{method}_init-{prune_init}_remainweights-{100 * (1 - sparsity):.1f}' + '.pt'
+            model_name = model_dir + '/' + f'model-{model_type}_batchsz-{batch_size}_dp_ratio-{dp_ratio}_approach-{approach}_method-{method}_init-{prune_init}_remainweights-{100 * (1 - sparsity):.1f}' + '.pt'
             model.load_state_dict(torch.load(model_name))
             model.rand_initialize_weights()
             print_sparsity(model)
             train_model(model,
-                        f'model-{model_type}_batchsz-{batch_size}_approach-{approach}_method-{method}_init-randomreinit_remainweights-{100 * (1 - sparsity):.1f}',
+                        f'model-{model_type}_batchsz-{batch_size}_dp_ratio-{dp_ratio}_approach-{approach}_method-{method}_init-randomreinit_remainweights-{100 * (1 - sparsity):.1f}',
                         epochs=epochs, lr=lr, optimizer_type=optim_type,
                         train_loader=train_loader, test_loader=test_loader,
                         model_dir=model_dir, results_dir=results_dir)
@@ -235,7 +235,7 @@ if __name__ == '__main__':
     parser.add_argument("--prune_init", default="rewind", type=str, help="rewind | random")
     parser.add_argument("--winning_ticket_reinit", default=0, type=int, help="Random reinitialization of winning "
                                                                              "tickets (from iterative with rewind)")
-    parser.add_argument("--dp_ratio", default=20, type=int, help="Dropout ration (0-100)")
+    parser.add_argument("--dp_ratio", default=20, type=int, help="Dropout ratio (0-100)")
     parser.add_argument("--prune_ratio_conv", default=None, type=int, help="Initial pruning ratio (0-100) for "
                                                                            "Convolution layers")
 
