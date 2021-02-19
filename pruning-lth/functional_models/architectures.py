@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from torch.nn.utils import prune
 
 
 # LeNet
@@ -22,9 +23,14 @@ class LeNet(nn.Module):
     def rand_initialize_weights(self):
         for layer in self.modules():
             if isinstance(layer, nn.Linear):
-                torch.nn.init.xavier_normal_(layer.weight)
-                if layer.bias is not None:
-                    torch.nn.init.constant_(layer.bias, 0)
+                if prune.is_pruned(self):
+                    torch.nn.init.xavier_normal_(layer.weight_orig)
+                    if layer.bias is not None:
+                        torch.nn.init.constant_(layer.bias_orig, 0)
+                else:
+                    torch.nn.init.xavier_normal_(layer.weight)
+                    if layer.bias is not None:
+                        torch.nn.init.constant_(layer.bias, 0)
 
     def forward(self, x):
         # flatten input
@@ -67,7 +73,11 @@ class Conv_4(nn.Module):
     def rand_initialize_weights(self):
         for layer in self.modules():
             if isinstance(layer, nn.Conv2d) or isinstance(layer, nn.Linear):
-                torch.nn.init.xavier_normal_(layer.weight)
+                if prune.is_pruned(self):
+                    torch.nn.init.xavier_normal_(layer.weight_orig)
+                else:
+                    torch.nn.init.xavier_normal_(layer.weight)
+
                 if layer.bias is not None:
                     torch.nn.init.constant_(layer.bias, 0)
 
@@ -136,11 +146,19 @@ class VGG(nn.Module):
     def rand_initialize_weights(self):
         for layer in self.modules():
             if isinstance(layer, nn.Conv2d):
-                torch.nn.init.kaiming_normal_(layer.weight, mode='fan_out', nonlinearity='relu')
+                if prune.is_pruned(self):
+                    torch.nn.init.kaiming_normal_(layer.weight_orig, mode='fan_out', nonlinearity='relu')
+                else:
+                    torch.nn.init.kaiming_normal_(layer.weight, mode='fan_out', nonlinearity='relu')
+
                 if layer.bias is not None:
                     torch.nn.init.constant_(layer.bias, 0)
             elif isinstance(layer, nn.Linear):
-                torch.nn.init.normal_(layer.weight, 0, 0.01)
+                if prune.is_pruned(self):
+                    torch.nn.init.normal_(layer.weight_orig, 0, 0.01)
+                else:
+                    torch.nn.init.normal_(layer.weight, 0, 0.01)
+
                 torch.nn.init.constant_(layer.bias, 0)
 
     def forward(self, x):
