@@ -26,7 +26,7 @@ class LeNet(nn.Module):
                 if prune.is_pruned(self):
                     torch.nn.init.xavier_normal_(layer.weight_orig)
                     if layer.bias is not None:
-                        torch.nn.init.constant_(layer.bias_orig, 0)
+                        torch.nn.init.constant_(layer.bias, 0)
                 else:
                     torch.nn.init.xavier_normal_(layer.weight)
                     if layer.bias is not None:
