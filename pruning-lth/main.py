@@ -29,7 +29,7 @@ def main(args):
     batch_size = args.batch_size
     prune_output_layer = bool(args.prune_output_layer)
     winning_ticket_reinit = bool(args.winning_ticket_reinit)
-    prune_init = args.prune_init
+    prune_init = 'rewind'
     rounds = args.prune_rounds
     dp_ratio = args.dp_ratio / 100
 
@@ -111,10 +111,7 @@ def main(args):
                             prune_output_layer=prune_output_layer)
 
                 # Step 4
-                if prune_init == "rewind":
-                    rewind_model_weights(model, init_weights)
-                elif prune_init == "random":
-                    model.rand_initialize_weights()
+                rewind_model_weights(model, init_weights)
 
         print(f'Model pruning, took {time.time() - t0: .2f} seconds')
 
@@ -203,7 +200,7 @@ def main(args):
     # Random initialization of winning tickets. #
     #############################################
 
-    if prune_init == "rewind" and winning_ticket_reinit:
+    if winning_ticket_reinit:
         print(
             f'Train and evaluate random re-initialization of winning/random tickets of {model_type} model:')
 
@@ -236,7 +233,6 @@ if __name__ == '__main__':
     parser.add_argument("--prune_ratio", default=20, type=int, help="Initial pruning ratio (0-100)")
     parser.add_argument("--prune_output_layer", default=1, type=int, help="Apply pruning to output layer")
     parser.add_argument("--prune_rounds", default=10, type=int, help="Number of pruning rounds")
-    parser.add_argument("--prune_init", default="rewind", type=str, help="rewind | random")
     parser.add_argument("--winning_ticket_reinit", default=0, type=int, help="Random reinitialization of winning "
                                                                              "tickets (from pruning with rewind)")
     parser.add_argument("--dp_ratio", default=20, type=int, help="Dropout ratio (0-100)")
