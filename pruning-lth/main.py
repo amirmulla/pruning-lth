@@ -128,6 +128,7 @@ def main(args):
                     model_dir=model_dir, results_dir=results_dir)
 
         for round in range(rounds):
+            print('Oneshot pruning round: {}'.format(round + 1))
             # Step 2
             for i in range(round):
                 p = pow(prune_ratio, (1 / (i + 1)))
@@ -162,6 +163,7 @@ def main(args):
         init_prune_model(model)
 
         for round in range(rounds):
+            print('Random pruning round: {}'.format(round + 1))
             # Step 2
             for i in range(round):
                 p = pow(prune_ratio, (1 / (i + 1)))
