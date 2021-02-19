@@ -116,20 +116,7 @@ def main(args):
         print(f'Model pruning, took {time.time() - t0: .2f} seconds')
 
     elif approach == "oneshot":
-        # Step 0
         t0 = time.time()
-        init_prune_model(model)
-        sparsity_l = []
-        for round in range(rounds):
-            sparsity = calc_model_sparsity(model) / 100
-            if sparsity != 0:
-                sparsity_l.append(sparsity)
-            p = pow(prune_ratio, (1 / (round + 1)))
-            if prune_ratio_conv is not None:
-                p_conv = pow(prune_ratio_conv, (1 / (round + 1)))
-            prune_model(model=model, prune_ratio=p, prune_ratio_conv=p_conv, prune_method=method,
-                        prune_output_layer=prune_output_layer)
-
         # Step 1
         init_prune_model(model)
         init_weights = save_model_weights(model)
@@ -140,11 +127,18 @@ def main(args):
                     train_loader=train_loader, test_loader=test_loader,
                     model_dir=model_dir, results_dir=results_dir)
 
-        for sparsity in sparsity_l:
+        for round in range(rounds):
             # Step 2
-            prune_model(model=model, prune_ratio=float(sparsity), prune_ratio_conv=prune_ratio_conv, prune_method=method,
-                        prune_output_layer=prune_output_layer)
+            for i in range(round):
+                p = pow(prune_ratio, (1 / (i + 1)))
+                if prune_ratio_conv is not None:
+                    p_conv = pow(prune_ratio_conv, (1 / (i + 1)))
+                prune_model(model=model, prune_ratio=p, prune_ratio_conv=p_conv, prune_method=method,
+                            prune_output_layer=prune_output_layer)
+
+            sparsity = calc_model_sparsity(model) / 100
             print_sparsity(model)
+
             # Step 3
             rewind_model_weights(model, init_weights)
 
@@ -163,34 +157,30 @@ def main(args):
         print(f'Model pruning, took {time.time() - t0: .2f} seconds')
 
     elif approach == "random":
-        # Step 0
         t0 = time.time()
-        init_prune_model(model)
-        sparsity_l = []
-        for round in range(rounds):
-            sparsity = calc_model_sparsity(model) / 100
-            if sparsity != 0:
-                sparsity_l.append(sparsity)
-            p = pow(prune_ratio, (1 / (round + 1)))
-            if prune_ratio_conv is not None:
-                p_conv = pow(prune_ratio_conv, (1 / (round + 1)))
-            prune_model(model=model, prune_ratio=p, prune_ratio_conv=p_conv, prune_method=method,
-                        prune_output_layer=prune_output_layer)
-
         # Step 1
         init_prune_model(model)
 
-        for sparsity in sparsity_l:
+        for round in range(rounds):
             # Step 2
-            prune_model(model=model, prune_ratio=float(sparsity), prune_ratio_conv=prune_ratio_conv, prune_method=method,
-                        prune_output_layer=prune_output_layer)
+            for i in range(round):
+                p = pow(prune_ratio, (1 / (i + 1)))
+                if prune_ratio_conv is not None:
+                    p_conv = pow(prune_ratio_conv, (1 / (i + 1)))
+                prune_model(model=model, prune_ratio=p, prune_ratio_conv=p_conv, prune_method=method,
+                            prune_output_layer=prune_output_layer)
+
+            sparsity = calc_model_sparsity(model) / 100
             print_sparsity(model)
+
+            # Step 3
             train_model(model,
                         f'model-{model_type}_batchsz-{batch_size}_dp-{dp_ratio}_approach-{approach}_method-{method}_init-{prune_init}_remainweights-{100 * (1 - sparsity):.1f}',
                         epochs=epochs, lr=lr, optimizer_type=optim_type,
                         train_loader=train_loader, test_loader=test_loader,
                         model_dir=model_dir, results_dir=results_dir)
 
+            # Step 4
             init_prune_model(model)
             model.rand_initialize_weights()
 
