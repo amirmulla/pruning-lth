@@ -11,7 +11,6 @@ from functional_models.pruning_funcs import *
 def main(args):
     results_dir = 'results'
     model_dir = 'saved_models'
-
     ##############################
     # Parameters.                #
     ##############################
@@ -39,8 +38,8 @@ def main(args):
 
     if model_type == 'lenet':
         transform = transforms.ToTensor()
-        train_data = datasets.MNIST('./dataset/', train=True, download=True, transform=transform)
-        test_data = datasets.MNIST('./dataset/', train=False, download=True, transform=transform)
+        train_data = datasets.FashionMNIST('./dataset/', train=True, download=True, transform=transform)
+        test_data = datasets.FashionMNIST('./dataset/', train=False, download=True, transform=transform)
     elif model_type == 'conv4' or model_type == 'vgg19':
         transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
         train_data = datasets.CIFAR10('./dataset/', train=True, download=True, transform=transform)
@@ -120,28 +119,24 @@ def main(args):
         # Step 1
         init_prune_model(model)
         init_weights = save_model_weights(model)
+        sparsity = calc_model_sparsity(model) / 100
         print_sparsity(model)
-        train_model(model,
-                    f'model-{model_type}_batchsz-{batch_size}_dp-{dp_ratio}_approach-{approach}_method-{method}_init-{prune_init}_remainweights-100',
-                    epochs=epochs, lr=lr, optimizer_type=optim_type,
-                    train_loader=train_loader, test_loader=test_loader,
-                    model_dir=model_dir, results_dir=results_dir)
 
         for round in range(rounds):
-            print('Oneshot pruning round: {}'.format(round + 1))
-            # Step 2
-            for i in range(round):
-                p = pow(prune_ratio, (1 / (i + 1)))
-                if prune_ratio_conv is not None:
-                    p_conv = pow(prune_ratio_conv, (1 / (i + 1)))
-                prune_model(model=model, prune_ratio=p, prune_ratio_conv=p_conv, prune_method=method,
-                            prune_output_layer=prune_output_layer)
+            if round is not 0:
+                # Step 2
+                for i in range(round):
+                    p = pow(prune_ratio, (1 / (i + 1)))
+                    if prune_ratio_conv is not None:
+                        p_conv = pow(prune_ratio_conv, (1 / (i + 1)))
+                    prune_model(model=model, prune_ratio=p, prune_ratio_conv=p_conv, prune_method=method,
+                                prune_output_layer=prune_output_layer)
 
-            sparsity = calc_model_sparsity(model) / 100
-            print_sparsity(model)
+                sparsity = calc_model_sparsity(model) / 100
+                print_sparsity(model)
 
-            # Step 3
-            rewind_model_weights(model, init_weights)
+                # Step 3
+                rewind_model_weights(model, init_weights)
 
             # Step 4
             train_model(model,
@@ -152,7 +147,7 @@ def main(args):
 
             # Step 5
             init_prune_model(model)
-            model_name = model_dir + '/' + f'model-{model_type}_batchsz-{batch_size}_dp-{dp_ratio}_approach-{approach}_method-{method}_init-{prune_init}_remainweights-100' + '.pt'
+            model_name = model_dir + '/' + f'model-{model_type}_batchsz-{batch_size}_dp-{dp_ratio}_approach-{approach}_method-{method}_init-{prune_init}_remainweights-100.0' + '.pt'
             model.load_state_dict(torch.load(model_name))
 
         print(f'Model pruning, took {time.time() - t0: .2f} seconds')
@@ -163,7 +158,6 @@ def main(args):
         init_prune_model(model)
 
         for round in range(rounds):
-            print('Random pruning round: {}'.format(round + 1))
             # Step 2
             for i in range(round):
                 p = pow(prune_ratio, (1 / (i + 1)))
@@ -221,10 +215,10 @@ if __name__ == '__main__':
     parser.add_argument("--batch_size", default=64, type=int)
     parser.add_argument("--prune_approach", default="iterative", type=str, help="iterative | oneshot | random")
     parser.add_argument("--prune_method", default="local", type=str, help="local | global")
-    parser.add_argument("--train_epochs", default=64, type=int)
+    parser.add_argument("--train_epochs", default=30, type=int)
     parser.add_argument("--prune_ratio", default=20, type=int, help="Initial pruning ratio (0-100)")
     parser.add_argument("--prune_output_layer", default=1, type=int, help="Apply pruning to output layer")
-    parser.add_argument("--prune_rounds", default=10, type=int, help="Number of pruning rounds")
+    parser.add_argument("--prune_rounds", default=8, type=int, help="Number of pruning rounds")
     parser.add_argument("--winning_ticket_reinit", default=0, type=int, help="Random reinitialization of winning "
                                                                              "tickets (from pruning with rewind)")
     parser.add_argument("--dp_ratio", default=20, type=int, help="Dropout ratio (0-100)")
