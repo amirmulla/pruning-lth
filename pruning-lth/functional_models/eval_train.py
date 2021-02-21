@@ -38,7 +38,8 @@ def eval_model(model, criterion, loader):
 # Model Training          #
 ###########################
 
-def train_model(model, model_name, epochs=20, optimizer_type='adam', lr=0.001, weight_decay=0, results_dir=None, model_dir=None,
+def train_model(model, model_name, epochs=20, optimizer_type='adam', lr=0.001, weight_decay=0, results_dir=None,
+                model_dir=None, use_lr_scheduler=False,
                 train_loader=None, test_loader=None):
     model_res_path = results_dir + '/' + model_name + '.pkl'
     model_name = model_dir + '/' + model_name + '.pt'
@@ -52,12 +53,16 @@ def train_model(model, model_name, epochs=20, optimizer_type='adam', lr=0.001, w
     elif optimizer_type == 'sgd':
         optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9, weight_decay=weight_decay)
 
+    if use_lr_scheduler:
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
+
     # init results data structure
     results = {'accs_losses': {'train_loss': [], 'train_acc': [],
                                'test_loss': [], 'test_acc': []},
                'min_valid_loss_data': {'min_valid_loss_val': np.Inf, 'min_valid_loss_iter': 0}}
 
     test_loss_min = np.Inf
+    test_acc_max = 0
 
     for epoch in range(epochs):
         t0 = time.time()
@@ -89,6 +94,14 @@ def train_model(model, model_name, epochs=20, optimizer_type='adam', lr=0.001, w
             # save to results
             results['min_valid_loss_data']['min_valid_loss_val'] = test_loss_min
             results['min_valid_loss_data']['min_valid_loss_iter'] = epoch + 1
+        if test_acc_max <= test_acc:
+            test_acc_max = test_acc
+            # save to results
+            results['max_valid_acc_data']['max_valid_acc_val'] = test_acc_max
+            results['max_valid_acc_data']['max_valid_acc_iter'] = epoch + 1
+
+        if use_lr_scheduler:
+            scheduler.step()
 
         results['accs_losses']['train_loss'].append(train_loss)
         results['accs_losses']['train_acc'].append(train_acc)
