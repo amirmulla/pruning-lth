@@ -32,6 +32,9 @@ def main(args):
     rounds = args.prune_rounds
     dp_ratio = args.dp_ratio / 100
 
+    find_matching_tickets = bool(args.find_matching_tickets)
+    stabilize_epochs = args.stabilize_epochs
+
     ##############################
     # Train and Test Loaders.    #
     ##############################
@@ -59,20 +62,30 @@ def main(args):
         model = LeNet(dp_ratio=dp_ratio)
         optim_type = 'adam'
         lr = 1.2e-3
+        weight_decay = 1e-4
     elif model_type == 'conv4':
         model = Conv_4(dp_ratio=dp_ratio)
         optim_type = 'adam'
         lr = 3e-4
+        weight_decay = 1e-4
     elif model_type == 'vgg19':
         model = VGG(dp_ratio=dp_ratio)
         optim_type = 'sgd'
         lr = 0.01
+        weight_decay = 1e-4
 
     print(model)
 
-    #######################################
-    # Identifying winning tickets.        #
-    #######################################
+    #########################################
+    # Identifying winning/matching tickets. #
+    #########################################
+
+    if find_matching_tickets:
+        print(f'Stabilizing {model_type} model, with before {approach} pruning...')
+        train_model(model, f'model-{model_type}_stabilize', epochs=stabilize_epochs, lr=lr, weight_decay=weight_decay,
+                    optimizer_type=optim_type,
+                    train_loader=train_loader, test_loader=test_loader,
+                    model_dir=model_dir, results_dir=results_dir)
 
     p_conv = None
 
@@ -96,7 +109,7 @@ def main(args):
             # Step 2
             train_model(model,
                         f'model-{model_type}_batchsz-{batch_size}_dp-{dp_ratio}_approach-{approach}_method-{method}_init-{prune_init}_remainweights-{100 * (1 - sparsity):.1f}',
-                        epochs=epochs, lr=lr, optimizer_type=optim_type,
+                        epochs=epochs, lr=lr, weight_decay=weight_decay, optimizer_type=optim_type,
                         train_loader=train_loader, test_loader=test_loader,
                         model_dir=model_dir, results_dir=results_dir)
 
@@ -141,7 +154,7 @@ def main(args):
             # Step 4
             train_model(model,
                         f'model-{model_type}_batchsz-{batch_size}_dp-{dp_ratio}_approach-{approach}_method-{method}_init-{prune_init}_remainweights-{100 * (1 - sparsity):.1f}',
-                        epochs=epochs, lr=lr, optimizer_type=optim_type,
+                        epochs=epochs, lr=lr, weight_decay=weight_decay, optimizer_type=optim_type,
                         train_loader=train_loader, test_loader=test_loader,
                         model_dir=model_dir, results_dir=results_dir)
 
@@ -172,7 +185,7 @@ def main(args):
             # Step 3
             train_model(model,
                         f'model-{model_type}_batchsz-{batch_size}_dp-{dp_ratio}_approach-{approach}_method-{method}_init-{prune_init}_remainweights-{100 * (1 - sparsity):.1f}',
-                        epochs=epochs, lr=lr, optimizer_type=optim_type,
+                        epochs=epochs, lr=lr, weight_decay=weight_decay, optimizer_type=optim_type,
                         train_loader=train_loader, test_loader=test_loader,
                         model_dir=model_dir, results_dir=results_dir)
 
@@ -201,7 +214,7 @@ def main(args):
             print_sparsity(model)
             train_model(model,
                         f'model-{model_type}_batchsz-{batch_size}_dp-{dp_ratio}_approach-{approach}_method-{method}_init-random_remainweights-{100 * (1 - sparsity):.1f}',
-                        epochs=epochs, lr=lr, optimizer_type=optim_type,
+                        epochs=epochs, lr=lr, weight_decay=weight_decay, optimizer_type=optim_type,
                         train_loader=train_loader, test_loader=test_loader,
                         model_dir=model_dir, results_dir=results_dir)
             i += 1
@@ -224,6 +237,10 @@ if __name__ == '__main__':
     parser.add_argument("--dp_ratio", default=20, type=int, help="Dropout ratio (0-100)")
     parser.add_argument("--prune_ratio_conv", default=None, type=int, help="Initial pruning ratio (0-100) for "
                                                                            "Convolution layers")
+    parser.add_argument("--find_matching_tickets", default=1, type=int,
+                        help="apply pre pruning training to stabilize model")
+    parser.add_argument("--stabilize_epochs", default=1, type=int,
+                        help="pre pruning training epochs to stabilize model")
 
     args = parser.parse_args()
 
