@@ -38,7 +38,7 @@ def eval_model(model, criterion, loader):
 # Model Training          #
 ###########################
 
-def train_model(model, model_name, epochs=20, optimizer_type='adam', lr=0.001, results_dir=None, model_dir=None,
+def train_model(model, model_name, epochs=20, optimizer_type='adam', lr=0.001, weight_decay=0, results_dir=None, model_dir=None,
                 train_loader=None, test_loader=None):
     model_res_path = results_dir + '/' + model_name + '.pkl'
     model_name = model_dir + '/' + model_name + '.pt'
@@ -48,9 +48,9 @@ def train_model(model, model_name, epochs=20, optimizer_type='adam', lr=0.001, r
     # Define the loss and optimizer
     criterion = nn.CrossEntropyLoss().cuda()
     if optimizer_type == 'adam':
-        optimizer = optim.Adam(model.parameters(), lr=lr)
+        optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
     elif optimizer_type == 'sgd':
-        optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9)
+        optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9, weight_decay=weight_decay)
 
     # init results data structure
     results = {'accs_losses': {'train_loss': [], 'train_acc': [],

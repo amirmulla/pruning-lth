@@ -126,14 +126,32 @@ class VGG(nn.Module):
         self.conv15 = nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, padding=1)
         self.conv16 = nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, padding=1)
 
+        # batch norm layer
+        self.bn1 = nn.BatchNorm2d(64)
+        self.bn2 = nn.BatchNorm2d(64)
+        self.bn3 = nn.BatchNorm2d(128)
+        self.bn4 = nn.BatchNorm2d(128)
+        self.bn5 = nn.BatchNorm2d(256)
+        self.bn6 = nn.BatchNorm2d(256)
+        self.bn7 = nn.BatchNorm2d(256)
+        self.bn8 = nn.BatchNorm2d(256)
+        self.bn9 = nn.BatchNorm2d(512)
+        self.bn10 = nn.BatchNorm2d(512)
+        self.bn11 = nn.BatchNorm2d(512)
+        self.bn12 = nn.BatchNorm2d(512)
+        self.bn13 = nn.BatchNorm2d(512)
+        self.bn14 = nn.BatchNorm2d(512)
+        self.bn15 = nn.BatchNorm2d(512)
+        self.bn16 = nn.BatchNorm2d(512)
+
         # max pooling layer
         self.pool = nn.MaxPool2d(2, 2)
 
         # average pooling layer
-        self.avgpool = nn.AdaptiveAvgPool2d((7, 7))
+        self.avg_pool = nn.AvgPool2d(2)
 
-        # linear layer (512 * 7 * 7 -> 10)
-        self.fc = nn.Linear(512 * 7 * 7, 10)
+        # linear layer (512 -> 10)
+        self.fc = nn.Linear(512, 10)
 
         # dropout layer
         self.dropout = nn.Dropout(dp_ratio)
@@ -150,7 +168,6 @@ class VGG(nn.Module):
                     torch.nn.init.kaiming_normal_(layer.weight_orig, mode='fan_out', nonlinearity='relu')
                 else:
                     torch.nn.init.kaiming_normal_(layer.weight, mode='fan_out', nonlinearity='relu')
-
                 if layer.bias is not None:
                     torch.nn.init.constant_(layer.bias, 0)
             elif isinstance(layer, nn.Linear):
@@ -158,54 +175,73 @@ class VGG(nn.Module):
                     torch.nn.init.normal_(layer.weight_orig, 0, 0.01)
                 else:
                     torch.nn.init.normal_(layer.weight, 0, 0.01)
-
+                torch.nn.init.constant_(layer.bias, 0)
+            elif isinstance(layer, nn.BatchNorm2d):
+                torch.nn.init.constant_(layer.weight, 1)
                 torch.nn.init.constant_(layer.bias, 0)
 
     def forward(self, x):
         # 64
         x = self.conv1(x)
+        x = self.bn1(x)
         x = self.activation(x)
         x = self.conv2(x)
+        x = self.bn2(x)
         x = self.activation(x)
         x = self.pool(x)
         # 128
         x = self.conv3(x)
+        x = self.bn3(x)
         x = self.activation(x)
         x = self.conv4(x)
+        x = self.bn4(x)
         x = self.activation(x)
         x = self.pool(x)
         # 256
         x = self.conv5(x)
+        x = self.bn5(x)
         x = self.activation(x)
         x = self.conv6(x)
+        x = self.bn6(x)
         x = self.activation(x)
         x = self.conv7(x)
+        x = self.bn7(x)
         x = self.activation(x)
         x = self.conv8(x)
+        x = self.bn8(x)
         x = self.activation(x)
         x = self.pool(x)
         # 512
         x = self.conv9(x)
+        x = self.bn9(x)
         x = self.activation(x)
         x = self.conv10(x)
+        x = self.bn10(x)
         x = self.activation(x)
         x = self.conv11(x)
+        x = self.bn11(x)
         x = self.activation(x)
         x = self.conv12(x)
+        x = self.bn12(x)
         x = self.activation(x)
         x = self.pool(x)
         # 512
         x = self.conv13(x)
+        x = self.bn13(x)
         x = self.activation(x)
         x = self.conv14(x)
+        x = self.bn14(x)
         x = self.activation(x)
         x = self.conv15(x)
+        x = self.bn15(x)
         x = self.activation(x)
         x = self.conv16(x)
+        x = self.bn16(x)
         x = self.activation(x)
         # average pool
-        x = self.avgpool(x)
+        x = self.avg_pool(x)
         x = torch.flatten(x, start_dim=1)
         x = self.dropout(x)
+        # linear
         x = self.fc(x)
         return x
