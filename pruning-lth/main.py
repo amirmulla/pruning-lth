@@ -11,10 +11,6 @@ from functional_models.pruning_funcs import *
 def main(args):
     results_dir = 'results'
     model_dir = 'saved_models'
-    ##############################
-    # Parameters.                #
-    ##############################
-
     model_type = args.model_type
     approach = args.prune_approach
     method = args.prune_method
@@ -35,23 +31,35 @@ def main(args):
     find_matching_tickets = bool(args.find_matching_tickets)
     stabilize_epochs = args.stabilize_epochs
 
+    use_lr_scheduler = bool(args.use_lr_scheduler)
+
     ##############################
     # Train and Test Loaders.    #
     ##############################
 
-    if model_type == 'lenet':
-        transform = transforms.ToTensor()
-        train_data = datasets.FashionMNIST('./dataset/', train=True, download=True, transform=transform)
-        test_data = datasets.FashionMNIST('./dataset/', train=False, download=True, transform=transform)
-    elif model_type == 'conv4' or model_type == 'vgg19':
-        transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
-        train_data = datasets.CIFAR10('./dataset/', train=True, download=True, transform=transform)
-        test_data = datasets.CIFAR10('./dataset/', train=False, download=True, transform=transform)
+    num_workers = 2
 
-    # prepare data loaders
-    num_workers = 0
-    train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=num_workers)
-    test_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+    if model_type == 'lenet':
+        transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
+
+        train_data = datasets.MNIST('./dataset/', train=True, download=True, transform=transform)
+        train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=2)
+
+        test_data = datasets.MNIST('./dataset/', train=False, download=True, transform=transform)
+        test_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size, shuffle=False, num_workers=2)
+
+    elif model_type == 'conv4' or model_type == 'vgg19':
+        transform_train = transforms.Compose(
+            [transforms.RandomCrop(32, padding=4), transforms.RandomHorizontalFlip(), transforms.ToTensor(),
+             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)), ])
+        transform_test = transforms.Compose(
+            [transforms.ToTensor(), transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)), ])
+
+        train_data = datasets.CIFAR10('./dataset/', train=True, download=True, transform=transform_train)
+        train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=2)
+
+        test_data = datasets.CIFAR10('./dataset/', train=False, download=True, transform=transform_test)
+        test_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size, shuffle=False, num_workers=2)
 
     ##############################
     # Init Network.              #
@@ -62,12 +70,12 @@ def main(args):
         model = LeNet(dp_ratio=dp_ratio)
         optim_type = 'adam'
         lr = 1.2e-3
-        weight_decay = 1e-4
+        weight_decay = 0
     elif model_type == 'conv4':
         model = Conv_4(dp_ratio=dp_ratio)
         optim_type = 'adam'
         lr = 3e-4
-        weight_decay = 1e-4
+        weight_decay = 0
     elif model_type == 'vgg19':
         model = VGG(dp_ratio=dp_ratio)
         optim_type = 'sgd'
@@ -83,7 +91,7 @@ def main(args):
     if find_matching_tickets:
         print(f'Stabilizing {model_type} model, with before {approach} pruning...')
         train_model(model, f'model-{model_type}_stabilize', epochs=stabilize_epochs, lr=lr, weight_decay=weight_decay,
-                    optimizer_type=optim_type,
+                    optimizer_type=optim_type, use_lr_scheduler=use_lr_scheduler,
                     train_loader=train_loader, test_loader=test_loader,
                     model_dir=model_dir, results_dir=results_dir)
 
@@ -110,8 +118,12 @@ def main(args):
             train_model(model,
                         f'model-{model_type}_batchsz-{batch_size}_dp-{dp_ratio}_approach-{approach}_method-{method}_init-{prune_init}_remainweights-{100 * (1 - sparsity):.1f}',
                         epochs=epochs, lr=lr, weight_decay=weight_decay, optimizer_type=optim_type,
+                        use_lr_scheduler=use_lr_scheduler,
                         train_loader=train_loader, test_loader=test_loader,
                         model_dir=model_dir, results_dir=results_dir)
+
+            model_name = model_dir + '/' + f'model-{model_type}_batchsz-{batch_size}_dp-{dp_ratio}_approach-{approach}_method-{method}_init-{prune_init}_remainweights-{100 * (1 - sparsity):.1f}' + '.pt'
+            model.load_state_dict(torch.load(model_name))
 
             if round < (rounds - 1):
                 # Step 3
@@ -155,6 +167,7 @@ def main(args):
             train_model(model,
                         f'model-{model_type}_batchsz-{batch_size}_dp-{dp_ratio}_approach-{approach}_method-{method}_init-{prune_init}_remainweights-{100 * (1 - sparsity):.1f}',
                         epochs=epochs, lr=lr, weight_decay=weight_decay, optimizer_type=optim_type,
+                        use_lr_scheduler=use_lr_scheduler,
                         train_loader=train_loader, test_loader=test_loader,
                         model_dir=model_dir, results_dir=results_dir)
 
@@ -186,6 +199,7 @@ def main(args):
             train_model(model,
                         f'model-{model_type}_batchsz-{batch_size}_dp-{dp_ratio}_approach-{approach}_method-{method}_init-{prune_init}_remainweights-{100 * (1 - sparsity):.1f}',
                         epochs=epochs, lr=lr, weight_decay=weight_decay, optimizer_type=optim_type,
+                        use_lr_scheduler=use_lr_scheduler,
                         train_loader=train_loader, test_loader=test_loader,
                         model_dir=model_dir, results_dir=results_dir)
 
@@ -215,6 +229,7 @@ def main(args):
             train_model(model,
                         f'model-{model_type}_batchsz-{batch_size}_dp-{dp_ratio}_approach-{approach}_method-{method}_init-random_remainweights-{100 * (1 - sparsity):.1f}',
                         epochs=epochs, lr=lr, weight_decay=weight_decay, optimizer_type=optim_type,
+                        use_lr_scheduler=use_lr_scheduler,
                         train_loader=train_loader, test_loader=test_loader,
                         model_dir=model_dir, results_dir=results_dir)
             i += 1
@@ -237,10 +252,13 @@ if __name__ == '__main__':
     parser.add_argument("--dp_ratio", default=20, type=int, help="Dropout ratio (0-100)")
     parser.add_argument("--prune_ratio_conv", default=None, type=int, help="Initial pruning ratio (0-100) for "
                                                                            "Convolution layers")
-    parser.add_argument("--find_matching_tickets", default=1, type=int,
+    parser.add_argument("--find_matching_tickets", default=0, type=int,
                         help="apply pre pruning training to stabilize model")
-    parser.add_argument("--stabilize_epochs", default=1, type=int,
+    parser.add_argument("--stabilize_epochs", default=0, type=int,
                         help="pre pruning training epochs to stabilize model")
+
+    parser.add_argument("--use_lr_scheduler", default=1, type=int,
+                        help="Use learning rate scheduler")
 
     args = parser.parse_args()
 
