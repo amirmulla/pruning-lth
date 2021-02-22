@@ -94,11 +94,6 @@ def train_model(model, model_name, epochs=20, optimizer_type='adam', lr=0.001, w
             # save to results
             results['min_valid_loss_data']['min_valid_loss_val'] = test_loss_min
             results['min_valid_loss_data']['min_valid_loss_iter'] = epoch + 1
-        if test_acc_max <= test_acc:
-            test_acc_max = test_acc
-            # save to results
-            results['max_valid_acc_data']['max_valid_acc_val'] = test_acc_max
-            results['max_valid_acc_data']['max_valid_acc_iter'] = epoch + 1
 
         if use_lr_scheduler:
             scheduler.step()
