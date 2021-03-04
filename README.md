@@ -94,4 +94,4 @@ optional arguments:
 
 VGG Example:
 
-python main.py --model_type vgg19 --prune_approach iterative --prune_method global --train_epochs 100 --prune_ratio 20 --prune_ratio_conv 20 --prune_rounds 8 --prune_output_layer 0 --dp_ratio 0 --winning_ticket_reinit 1 --use_lr_scheduler 1
+    python main.py --model_type vgg19 --prune_approach iterative --prune_method global --train_epochs 100 --prune_ratio 20 --prune_ratio_conv 20 --prune_rounds 8 -prune_output_layer 0 --dp_ratio 0 --winning_ticket_reinit 1 --use_lr_scheduler 1
