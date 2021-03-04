@@ -15,7 +15,9 @@ This code implements The Lottery Ticket Hypothesis paper by Jonathan Frankle and
 
 python main.py --help
 
-usage: main.py [-h] [--model_type MODEL_TYPE] [--batch_size BATCH_SIZE]
+usage: main.py [-h] 
+               
+               [--model_type MODEL_TYPE] [--batch_size BATCH_SIZE]
 
                [--prune_approach PRUNE_APPROACH] [--prune_method PRUNE_METHOD]
                
@@ -37,61 +39,58 @@ usage: main.py [-h] [--model_type MODEL_TYPE] [--batch_size BATCH_SIZE]
                
 
 optional arguments:
-
-  -h, --help            show this help message and exit
   
   --model_type MODEL_TYPE
   
-                        lenet | conv4 | vgg19
+    lenet | conv4 | vgg19
                         
   --batch_size BATCH_SIZE
   
   --prune_approach PRUNE_APPROACH
   
-                        iterative | oneshot | random
+    iterative | oneshot | random
                         
   --prune_method PRUNE_METHOD
   
-                        local | global
+    local | global
                         
   --train_epochs TRAIN_EPOCHS
   
   --prune_ratio PRUNE_RATIO
   
-                        Initial pruning ratio (0-100)
+     Initial pruning ratio (0-100)
                         
   --prune_output_layer PRUNE_OUTPUT_LAYER
   
-                        Apply pruning to output layer
+     Apply pruning to output layer
                         
   --prune_rounds PRUNE_ROUNDS
   
-                        Number of pruning rounds
+    Number of pruning rounds
                         
   --winning_ticket_reinit WINNING_TICKET_REINIT
   
-                        Random reinitialization of winning tickets (from
-                        pruning with rewind)
+    Random reinitialization of winning tickets (from pruning with rewind)
                         
   --dp_ratio DP_RATIO   Dropout ratio (0-100)
   
   --prune_ratio_conv PRUNE_RATIO_CONV
   
-                        Initial pruning ratio (0-100) for Convolution layers
+    Initial pruning ratio (0-100) for Convolution layers
                         
   --find_matching_tickets FIND_MATCHING_TICKETS
   
-                        apply pre pruning training to stabilize model
+    apply pre pruning training to stabilize model
                         
   --stabilize_epochs STABILIZE_EPOCHS
   
-                        pre pruning training epochs to stabilize model
+    pre pruning training epochs to stabilize model
                         
   --use_lr_scheduler USE_LR_SCHEDULER
   
-                        Use learning rate scheduler
+    Use learning rate scheduler
                         
 
 VGG Example:
 
-    python main.py --model_type vgg19 --prune_approach iterative --prune_method global --train_epochs 100 --prune_ratio 20 --prune_ratio_conv 20 --prune_rounds 8 -prune_output_layer 0 --dp_ratio 0 --winning_ticket_reinit 1 --use_lr_scheduler 1
+    python main.py --model_type vgg19 --prune_approach iterative --prune_method global --train_epochs 100 --prune_ratio 20 --prune_ratio_conv 20 --prune_rounds 8  prune_output_layer 0 --dp_ratio 0 --winning_ticket_reinit 1 --use_lr_scheduler 1
