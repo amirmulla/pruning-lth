@@ -9,6 +9,8 @@ We find that a standard pruning technique naturally uncovers subnetworks whose i
 
 We present an algorithm to identify winning tickets and a series of experiments that support the lottery ticket hypothesis and the importance of these fortuitous initializations. We consistently find winning tickets that are less than 10-20% of the size of several fully-connected and convolutional feed-forward architectures for MNIST and CIFAR10. Above this size, the winning tickets that we find learn faster than the original network and reach higher test accuracy.
 
+Code Description:
+
 This code implements The Lottery Ticket Hypothesis paper by Jonathan Frankle and Michael Carbin. Code allows to run 3 choosen models from the paper - VGG19, Conv-4 and Lenet with various options as described below. 
 
 python main.py --help
